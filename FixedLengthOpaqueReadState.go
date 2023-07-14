@@ -45,9 +45,19 @@ func(state *FixedLengthOpaqueReadState) Update(bytes []byte) (readCount int, isF
 		isFull = true
 		return
 	}
-	if nextLength > state.ExpectedLength {
+	paddedExpectedLength := state.ExpectedLength
+	remainder := paddedExpectedLength % uint32(4)
+	if remainder > 0 {
+		paddedExpectedLength += uint32(4) - remainder
+	}
+	paddedLength := length32
+	if length32 > paddedExpectedLength {
+		length32 = state.ExpectedLength - state.currentLength
+		paddedLength = paddedExpectedLength - state.currentLength
+	} else if length32 > state.ExpectedLength {
 		length32 = state.ExpectedLength - state.currentLength
 	}
+	var handled uint32
 	if length32 > 0 {
 		readCount, isFull = state.Handler.Update(bytes[0:length32])
 		if uint32(readCount) > length32 {
@@ -59,8 +69,19 @@ func(state *FixedLengthOpaqueReadState) Update(bytes []byte) (readCount int, isF
 			isFull = true
 			return
 		}
-		state.currentLength += uint32(readCount)
-	} else if state.currentLength == state.ExpectedLength {
+		handled = uint32(readCount)
+	}
+	if handled < length32 {
+		state.currentLength += handled
+	} else {
+		readCount = int(paddedLength)
+		if readCount < 0 {
+			readCount = math.MaxInt
+			paddedLength = uint32(readCount)
+		}
+		state.currentLength += paddedLength
+	}
+	if state.currentLength >= paddedExpectedLength {
 		isFull = true
 	}
 	return
