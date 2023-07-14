@@ -15,6 +15,7 @@ type VariableLengthOpaqueReadState struct {
 func(state *VariableLengthOpaqueReadState) Reset() {
 	state.PrimitiveState.Reset(4)
 	state.inBody = false
+	state.firstError = nil
 }
 
 
