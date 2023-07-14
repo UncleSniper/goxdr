@@ -79,6 +79,10 @@ func(state *FixedLengthOpaqueReadState) Update(bytes []byte) (readCount int, isF
 			readCount = math.MaxInt
 			paddedLength = uint32(readCount)
 		}
+		if readCount > length {
+			readCount = length
+			paddedLength = uint32(readCount)
+		}
 		state.currentLength += paddedLength
 	}
 	if state.currentLength >= paddedExpectedLength {
