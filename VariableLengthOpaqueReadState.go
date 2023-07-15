@@ -8,6 +8,7 @@ import (
 type VariableLengthOpaqueReadState struct {
 	PrimitiveState *PrimitiveReadState
 	FixedLengthState *FixedLengthOpaqueReadState
+	MaxLength uint32
 	inBody bool
 	firstError error
 }
@@ -46,6 +47,15 @@ func(state *VariableLengthOpaqueReadState) Update(bytes []byte) (readCount int, 
 		}
 		state.FixedLengthState.Reset()
 		state.FixedLengthState.ExpectedLength = state.PrimitiveState.AsUint()
+		if state.FixedLengthState.ExpectedLength > state.MaxLength {
+			state.firstError = errors.New(fmt.Sprintf(
+				"Variable-length opaque data has maximum length %d, but encountered length %d",
+				state.MaxLength,
+				state.FixedLengthState.ExpectedLength,
+			))
+			isFull = true
+			return
+		}
 		state.inBody = true
 	}
 	var bodyReadCount int
