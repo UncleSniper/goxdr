@@ -41,7 +41,6 @@ func(state *VariableLengthArrayReadState[T]) Update(bytes []byte) (readCount int
 		}
 		state.firstError = state.PrimitiveState.EndPacket()
 		if state.firstError != nil {
-			isFull = true
 			return
 		}
 		state.FixedLengthState.Reset()
@@ -52,7 +51,6 @@ func(state *VariableLengthArrayReadState[T]) Update(bytes []byte) (readCount int
 				state.MaxLength,
 				state.FixedLengthState.ExpectedLength,
 			))
-			isFull = true
 			return
 		}
 		state.inBody = true
