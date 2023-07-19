@@ -5,22 +5,21 @@ import (
 	"errors"
 )
 
-type VariableLengthOpaqueReadState struct {
+type VariableLengthArrayReadState[T any] struct {
 	PrimitiveState *PrimitiveReadState
-	FixedLengthState *FixedLengthOpaqueReadState
+	FixedLengthState *FixedLengthArrayReadState[T]
 	MaxLength uint32
 	inBody bool
 	firstError error
 }
 
-func(state *VariableLengthOpaqueReadState) Reset() {
+func(state *VariableLengthArrayReadState[T]) Reset() {
 	state.PrimitiveState.Reset(4)
 	state.inBody = false
 	state.firstError = nil
 }
 
-
-func(state *VariableLengthOpaqueReadState) Update(bytes []byte) (readCount int, isFull bool) {
+func(state *VariableLengthArrayReadState[T]) Update(bytes []byte) (readCount int, isFull bool) {
 	if state.firstError != nil {
 		isFull = true
 		return
@@ -49,7 +48,7 @@ func(state *VariableLengthOpaqueReadState) Update(bytes []byte) (readCount int, 
 		state.FixedLengthState.ExpectedLength = state.PrimitiveState.AsUint()
 		if state.FixedLengthState.ExpectedLength > state.MaxLength {
 			state.firstError = errors.New(fmt.Sprintf(
-				"Variable-length opaque data has maximum length %d, but encountered length %d",
+				"Variable-length array has maximum length %d, but encountered length %d",
 				state.MaxLength,
 				state.FixedLengthState.ExpectedLength,
 			))
@@ -62,7 +61,7 @@ func(state *VariableLengthOpaqueReadState) Update(bytes []byte) (readCount int, 
 	bodyReadCount, isFull = state.FixedLengthState.Update(bytes[readCount:])
 	if bodyReadCount > length - readCount {
 		state.firstError = errors.New(fmt.Sprintf(
-			"Fixed length opaque data read state read %d bytes, but was supposed to only read %d",
+			"Fixed length array read state read %d bytes, but was supposed to only read %d",
 			bodyReadCount,
 			length - readCount,
 		))
@@ -73,7 +72,7 @@ func(state *VariableLengthOpaqueReadState) Update(bytes []byte) (readCount int, 
 	return
 }
 
-func(state *VariableLengthOpaqueReadState) EndPacket() error {
+func(state *VariableLengthArrayReadState[T]) EndPacket() error {
 	if state.firstError == nil {
 		if state.inBody {
 			state.firstError = state.FixedLengthState.EndPacket()
@@ -90,4 +89,4 @@ func(state *VariableLengthOpaqueReadState) EndPacket() error {
 	return state.firstError
 }
 
-var _ ReadState = &VariableLengthOpaqueReadState{}
+var _ ReadState = &VariableLengthArrayReadState[int]{}
